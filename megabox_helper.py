@@ -31,6 +31,9 @@ def log(msg):
 def load_config(path):
     c = json.loads(Path(path).read_text(encoding="utf-8"))
     c["date_data"] = c["date"].replace("-", ".")          # 2026.10.30
+    for k in ("movie", "region", "branch", "format_keyword"):
+        if re.search(r'["\\]', str(c.get(k, ""))):     # 화면 선택자에 들어가는 값
+            sys.exit(f"{k} 에는 \" 와 \\ 를 쓸 수 없어요.")
     c["people"] = max(1, min(8, int(c.get("people", 1))))
     c["check_every_sec"] = max(30, int(c.get("check_every_sec", 60)))
     c["times"] = [t.replace(":", "") for t in c.get("times", [])]

@@ -3,6 +3,8 @@
 영화·지점·날짜·시간·좌석(1~10순위)까지 고르고 **결제 직전에 멈추는** 개인용 프로그램.
 좌석 화면의 '다음'(로봇 확인 + 결제)은 직접 누른다.
 
+**설정 만들기 사이트**: https://treditor88.github.io/megabox-helper/ — 좌석표를 눌러 1~10순위를 고르고 `config.json` 을 받는다.
+
 ## 준비
 ```
 pip install playwright

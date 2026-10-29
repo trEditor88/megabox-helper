@@ -34,4 +34,7 @@ check("순위 없으면 예전처럼 자동", names(m.plan_seats(layout(), cfg(r
 for bad in (["G7"], ["G7 G8"] * 11, ["G7 가8"]):
     try: cfg(seats=bad); check(f"잘못된 입력 {bad[:2]} 막기", "안 막힘", "막힘")
     except SystemExit as e: check(f"잘못된 입력 {bad[:2]} 막기", "막힘", "막힘")
-print(f"{ok}/10 통과"); sys.exit(0 if ok == 10 else 1)
+for bad in ({"movie": 'a"b'}, {"branch": r"a\b"}):
+    try: cfg(**bad); check(f"따옴표·역슬래시 {bad} 막기", "안 막힘", "막힘")
+    except SystemExit: check(f"따옴표·역슬래시 {bad} 막기", "막힘", "막힘")
+print(f"{ok}/12 통과"); sys.exit(0 if ok == 12 else 1)
