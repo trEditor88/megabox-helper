@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>메가박스 예매 도우미 — 설정 만들기</title>
+<title>영화 예매 도우미 — 설정 만들기</title>
 <meta name="description" content="영화·지점·날짜·시간·좌석 1~10순위를 고르면 예매 도우미 설정 파일(config.json)을 만들어 줍니다.">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -109,7 +109,7 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
 
 <header><div class="wrap">
   <h1>좌석까지 골라 두고,<br>결제는 직접.</h1>
-  <p>영화·지점·날짜·시간·좌석 1~10순위를 정해 두면, 프로그램이 메가박스에서 그대로 고르고 결제 직전에 멈춥니다.</p>
+  <p>영화·지점·날짜·시간·좌석 1~10순위를 정해 두면, 프로그램이 메가박스·롯데시네마에서 그대로 고르고 결제 직전에 멈춥니다. 롯데시네마 좌석 고르기는 아직 시험 중이라, 안 되면 좌석만 직접 고르게 멈춰요.</p>
   <div class="row"><a class="btn" href="#make">설정 만들기</a><a class="btn ghost" href="#run">설치·실행 방법</a></div>
 </div></header>
 
@@ -133,9 +133,10 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
       <div class="panel">
         <h3>영화와 회차</h3>
         <div class="fields">
-          <div class="full"><label for="movie">영화 제목 <span class="hint">— 메가박스 목록의 이름 일부만 적어도 돼요</span></label><input id="movie" type="text" placeholder="예: 하트 오브 비스트" maxlength="60"></div>
+          <div class="full"><label for="cinema">영화관</label><select id="cinema"><option value="megabox">메가박스</option><option value="lotte">롯데시네마</option></select></div>
+          <div class="full"><label for="movie">영화 제목 <span class="hint">— 예매 화면 목록의 이름 일부만 적어도 돼요</span></label><input id="movie" type="text" placeholder="예: 하트 오브 비스트" maxlength="60"></div>
           <div><label for="region">지역</label><select id="region"></select></div>
-          <div><label for="branch">지점 <span class="hint">— 화면에 보이는 이름 그대로</span></label><input id="branch" type="text" placeholder="예: 코엑스" maxlength="30"></div>
+          <div><label for="branch">지점 <span class="hint">— 화면에 보이는 이름 그대로</span></label><input id="branch" type="text" placeholder="예: 코엑스, 월드타워, 광명(광명사거리)" maxlength="30"></div>
           <div><label for="date">날짜</label><input id="date" type="date"></div>
           <div><label for="format">상영 형식 <span class="hint">— 비우면 아무거나</span></label><input id="format" type="text" placeholder="예: Dolby, 4DX, 자막" maxlength="20"></div>
           <div class="full">
@@ -153,7 +154,7 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
           <div><label for="maxRow">좌석표 크기 <span class="hint">— 상영관에 맞게</span></label>
             <div class="row" style="flex-wrap:nowrap"><select id="maxRow" aria-label="마지막 줄"></select><select id="maxNo" aria-label="한 줄 좌석 수"></select></div></div>
         </div>
-        <p class="hint" style="margin:0 0 16px">순위를 고른 뒤 좌석표에서 인원 수만큼 눌러요. 다 채우면 다음 순위로 넘어가요. 상영관마다 배치가 다르니 메가박스 좌석표를 보고 이름(예: G7)을 맞춰 주세요.</p>
+        <p class="hint" style="margin:0 0 16px">순위를 고른 뒤 좌석표에서 인원 수만큼 눌러요. 다 채우면 다음 순위로 넘어가요. 상영관마다 배치가 다르니 예매 사이트 좌석표를 보고 이름(예: G7)을 맞춰 주세요.</p>
         <div class="screen" aria-hidden="true"></div><div class="screen-t">스크린</div>
         <div class="seatmap" id="seatmap"></div>
         <ol class="prio" id="prio" style="margin-top:20px"></ol>
@@ -204,21 +205,35 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
 
 <section class="alt"><div class="wrap">
   <h2>쓰기 전에</h2>
-  <p class="note">메가박스 이용약관은 자동 프로그램 사용을 금지해요. 내 예매에 가끔만 쓰고, 짧은 간격으로 반복 확인하지 마세요. 계정 제재 책임은 쓰는 사람에게 있어요. 로봇 확인과 결제는 프로그램이 대신하지 않아요.</p>
+  <p class="note">메가박스·롯데시네마 이용약관은 자동 프로그램 사용을 금지해요. 내 예매에 가끔만 쓰고, 짧은 간격으로 반복 확인하지 마세요. 계정 제재 책임은 쓰는 사람에게 있어요. 로봇 확인과 결제는 프로그램이 대신하지 않아요.</p>
 </div></section>
 
-<footer><div class="wrap">메가박스 예매 도우미 · 개인용 · 메가박스와 관련 없는 비공식 도구 · <a href="https://github.com/trEditor88/megabox-helper">GitHub</a></div></footer>
+<footer><div class="wrap">영화 예매 도우미 · 개인용 · 각 영화관과 관련 없는 비공식 도구 · <a href="https://github.com/trEditor88/megabox-helper">GitHub</a></div></footer>
 
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const KEY = 'megabox-helper:cfg';
-  const REGIONS = ['서울','경기','인천','대전/충청/세종','부산/대구/경상','광주/전라','강원','제주'];
+  // 영화관마다 화면의 지역 이름이 다름 — 값은 '/' 앞 첫 낱말(프로그램이 그 글자로 찾음)
+  const REGION_SETS = {
+    megabox: ['서울','경기','인천','대전/충청/세종','부산/대구/경상','광주/전라','강원','제주'],
+    lotte: ['서울','경기/인천','충청/대전','전라/광주','경북/대구','경남/부산/울산','강원','제주'],
+  };
+  let REGIONS = REGION_SETS.megabox;
+  function fillRegions(keep) {
+    REGIONS = REGION_SETS[$('cinema').value] || REGION_SETS.megabox;
+    $('region').innerHTML = '';
+    REGIONS.forEach(r => $('region').add(new Option(r, r.split('/')[0])));
+    // '인천'처럼 다른 영화관에선 묶음 안의 낱말이면 그 묶음으로
+    const hit = keep && REGIONS.find(r => r.split('/').includes(keep));
+    if (hit) $('region').value = hit.split('/')[0];
+  }
   const ROWS = 'ABCDEFGHIJKLMNOPQRSTU'.split('');
   const SEAT_RE = /^[A-Z]+\d+$/;
   const state = { times: [], rows: [], prios: [[]], cur: 0 };
 
-  REGIONS.forEach(r => $('region').add(new Option(r, r.split('/')[0])));
+  fillRegions();
+  $('cinema').addEventListener('change', () => { fillRegions($('region').value); render(); });
   for (let i = 1; i <= 8; i++) $('people').add(new Option(i + '명', i));
   ROWS.forEach((r, i) => i >= 4 && $('maxRow').add(new Option('A~' + r + ' 줄', r)));
   for (let i = 8; i <= 30; i += 2) $('maxNo').add(new Option('한 줄 ' + i + '석', i));
@@ -330,7 +345,7 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
     let every = Math.round(+$('every').value || 60);
     if (every < 30) every = 30;
     const cfg = {
-      movie, region: $('region').value, branch, date: $('date').value,
+      cinema: $('cinema').value, movie, region: $('region').value, branch, date: $('date').value,
       times: state.times, format_keyword: $('format').value.trim(), people: people(),
       seats: seats.map(p => p.join(' ')), rows: state.rows,
       wait_open: $('wait').checked, check_every_sec: every
@@ -364,7 +379,8 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
     if (!cfg || typeof cfg !== 'object') throw new Error('설정 모양이 아니에요');
     const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
     $('movie').value = str(cfg.movie, 60); $('branch').value = str(cfg.branch, 30); $('format').value = str(cfg.format_keyword, 20);
-    if (REGIONS.some(r => r.split('/')[0] === cfg.region)) $('region').value = cfg.region;
+    $('cinema').value = cfg.cinema === 'lotte' ? 'lotte' : 'megabox';
+    fillRegions(cfg.region);
     if (/^\d{4}-\d{2}-\d{2}$/.test(cfg.date || '')) $('date').value = cfg.date;
     const p = Math.max(1, Math.min(8, parseInt(cfg.people) || 1)); $('people').value = p;
     // "9:30" → "09:30"(프로그램은 앞 두 자리를 시로 읽음), 없는 시각은 버림

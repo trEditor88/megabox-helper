@@ -1,4 +1,4 @@
-"""메가박스 예매 도우미 — 영화·지점·날짜·시간·좌석까지 고르고 결제 직전에 멈춘다.
+"""영화 예매 도우미(메가박스·롯데시네마) — 영화·지점·날짜·시간·좌석까지 고르고 결제 직전에 멈춘다.
 
 - 로그인은 처음 한 번 열린 창에서 직접 한다(비밀번호를 프로그램이 다루지 않음).
   로그인 상태는 profile\\ 폴더에 남아 다음부터는 다시 안 해도 된다.
@@ -20,6 +20,8 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+import lotte
+
 HERE = Path(__file__).resolve().parent
 URL = "https://www.megabox.co.kr/booking"
 
@@ -30,6 +32,9 @@ def log(msg):
 
 def load_config(path):
     c = json.loads(Path(path).read_text(encoding="utf-8"))
+    c["cinema"] = c.get("cinema", "megabox")
+    if c["cinema"] not in ("megabox", "lotte"):
+        sys.exit("cinema 는 megabox 나 lotte 만 쓸 수 있어요.")
     c["date_data"] = c["date"].replace("-", ".")          # 2026.10.30
     for k in ("movie", "region", "branch", "format_keyword"):
         if re.search(r'["\\]', str(c.get(k, ""))):     # 화면 선택자에 들어가는 값
@@ -132,6 +137,13 @@ async def pick_schedule(page, c):
         log("  이 영화의 시간표가 없어요.")
         return None
     log(f"  회차 {len(shows)}개 찾음")
+    return shows
+
+
+def best_show(shows, c):
+    """남은 좌석·상영 형식으로 거르고 원하는 시각에 가장 가까운 회차 하나(없으면 None)."""
+    if not shows:
+        return None
     ok = [s for s in shows if s["rest"] >= c["people"]
           and (not c.get("format_keyword") or c["format_keyword"] in s["text"])]
     if c["times"]:
@@ -161,15 +173,34 @@ async def choose_seats(page, c):
         row:b.getAttribute('rowNm'), no:b.getAttribute('seatNo'), uniq:b.getAttribute('seatUniqNo'),
         left:parseFloat(b.style.left), width:parseFloat(b.style.width),
         free:!/finish|impossible|disabled/.test(b.className) && !b.disabled}))""")
+    return await pick_and_click(seats, c, lambda s: click_megabox_seat(seat, s))
+
+
+async def click_megabox_seat(seat, s):
+    await seat.locator(f'#seatLayout button[seatUniqNo="{s["uniq"]}"]').click()
+    await asyncio.sleep(0.5)
+    return await close_popup(seat, "확인")
+
+
+async def open_show(page, show):
+    f = page.frame(name="frameBokdMBooking")
+    await f.click(f'#playScheduleList button[id="{show["id"]}"]')
+    await asyncio.sleep(1.5)
+    for _ in range(3):                     # 상영관 안내 등 알림창 닫기
+        if not await close_popup(f, "확인"):
+            break
+
+
+async def pick_and_click(seats, c, click):
+    """좌석표(seats)에서 고를 묶음을 정하고 click(좌석) 으로 누른다."""
+    if seats is None:
+        return [], "인원 수 버튼을 못 찾았어요"
     grp, how = plan_seats(seats, c)
     if not grp:
         return [], how
     picked = []
     for s in grp:
-        btn = seat.locator(f'#seatLayout button[seatUniqNo="{s["uniq"]}"]')
-        await btn.click()
-        await asyncio.sleep(0.5)
-        msg = await close_popup(seat, "확인")
+        msg = await click(s)
         if msg:
             log(f"  알림: {msg[:60]}")
         picked.append(f'{s["row"]}{s["no"]}')
@@ -212,6 +243,31 @@ def plan_seats(seats, c):
     return best[1], pre + "자동으로 고름"
 
 
+class Megabox:
+    NAME = "메가박스"
+    URL = URL
+    is_logged_in = staticmethod(is_logged_in)
+    pick_schedule = staticmethod(pick_schedule)
+    open_show = staticmethod(open_show)
+    choose_seats = staticmethod(choose_seats)
+
+
+class Lotte:
+    NAME = lotte.NAME
+    URL = lotte.URL
+    is_logged_in = staticmethod(lotte.is_logged_in)
+    pick_schedule = staticmethod(lotte.pick_schedule)
+    open_show = staticmethod(lotte.open_show)
+
+    @staticmethod
+    async def choose_seats(page, c):
+        seats = await lotte.read_seats(page, c)
+        return await pick_and_click(seats, c, lambda s: lotte.click_seat(page, s))
+
+
+SITES = {"megabox": Megabox, "lotte": Lotte}
+
+
 def beep():
     for _ in range(3):
         winsound.Beep(1200, 250)
@@ -223,7 +279,8 @@ async def main():
     ap.add_argument("--dry", action="store_true")
     a = ap.parse_args()
     c = load_config(a.config)
-    log(f"찾는 것: {c['movie']} / {c['region']} {c['branch']} / {c['date']} / {c['people']}명")
+    site = SITES[c["cinema"]]()
+    log(f"[{site.NAME}] 찾는 것: {c['movie']} / {c['region']} {c['branch']} / {c['date']} / {c['people']}명")
 
     async with async_playwright() as p:
         if a.dry:
@@ -235,18 +292,18 @@ async def main():
                 args=["--start-maximized"])
             page = ctx.pages[0] if ctx.pages else await ctx.new_page()
 
-        await page.goto(URL, wait_until="domcontentloaded", timeout=60000)
+        await page.goto(site.URL, wait_until="domcontentloaded", timeout=60000)
         await asyncio.sleep(2)
-        if not a.dry and not await is_logged_in(page):
-            log("\n열린 창에서 메가박스에 로그인해 주세요. 로그인이 끝나면 자동으로 계속해요.")
-            while not await is_logged_in(page):
+        if not a.dry and not await site.is_logged_in(page):
+            log(f"\n열린 창에서 {site.NAME}에 로그인해 주세요. 로그인이 끝나면 자동으로 계속해요.")
+            while not await site.is_logged_in(page):
                 await asyncio.sleep(2)
             log("로그인 확인!")
-            await page.goto(URL, wait_until="domcontentloaded", timeout=60000)
+            await page.goto(site.URL, wait_until="domcontentloaded", timeout=60000)
             await asyncio.sleep(2)
 
         while True:
-            show = await pick_schedule(page, c)
+            show = best_show(await site.pick_schedule(page, c), c)
             if show or not c.get("wait_open") or a.dry:
                 break
             log(f"  {c['check_every_sec']}초 뒤 다시 확인해요. (끄려면 Ctrl+C)")
@@ -263,19 +320,22 @@ async def main():
             await browser.close()
             return
 
-        f = page.frame(name="frameBokdMBooking")
-        await f.click(f'#playScheduleList button[id="{show["id"]}"]')
-        await asyncio.sleep(1.5)
-        for _ in range(3):                     # 상영관 안내 등 알림창 닫기
-            if not await close_popup(f, "확인"):
-                break
-        picked, how = await choose_seats(page, c)
+        # 좌석 단계가 실패해도 창은 열어 두고 직접 고르게 한다(로그인 뒤 화면이라 미리 다 확인하지 못함)
+        try:
+            n_pages = len(page.context.pages)
+            await site.open_show(page, show)
+            if len(page.context.pages) > n_pages:  # 좌석 화면이 새 탭으로 열리면 그 탭에서
+                page = page.context.pages[-1]
+                await page.wait_for_load_state("domcontentloaded")
+            picked, how = await site.choose_seats(page, c)
+        except Exception as e:
+            picked, how = [], f"좌석 화면을 자동으로 다루지 못했어요({type(e).__name__})"
         beep()
         if picked:
             log(f"\n좌석 {', '.join(picked)} 을 골랐어요({how}).")
         else:
             log(f"\n{how}. 좌석은 직접 골라 주세요.")
-        log("창에서 좌석을 확인하고 '다음'을 직접 눌러 결제하세요. (창을 닫으면 프로그램도 끝나요)")
+        log("창에서 좌석을 확인하고 다음 단계를 직접 눌러 결제하세요. (창을 닫으면 프로그램도 끝나요)")
         await page.wait_for_event("close", timeout=0)
 
 
