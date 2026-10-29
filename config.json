@@ -1,0 +1,27 @@
+{
+  "movie": "하트 오브 비스트",
+  "region": "서울",
+  "branch": "코엑스",
+  "date": "2026-10-30",
+  "times": [
+    "18:00",
+    "21:00"
+  ],
+  "format_keyword": "",
+  "people": 2,
+  "seats": [
+    "G7 G8",
+    "G9 G10",
+    "H7 H8",
+    "H9 H10",
+    "F7 F8"
+  ],
+  "rows": [
+    "G",
+    "H",
+    "F",
+    "J"
+  ],
+  "wait_open": false,
+  "check_every_sec": 60
+}
