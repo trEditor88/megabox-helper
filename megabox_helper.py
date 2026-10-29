@@ -47,7 +47,8 @@ def load_config(path):
         names = [n.upper() for n in (p if isinstance(p, list) else re.split(r"[\s,]+", p)) if n]
         if len(names) != c["people"] or not all(re.fullmatch(r"[A-Z]+\d+", n) for n in names):
             sys.exit(f"seats {i}순위 '{p}' 는 좌석 이름(예: G7)을 인원 수({c['people']}개)만큼 적어 주세요.")
-        c["seats"].append(names)
+        # "G07" → "G7"(좌석표의 seatNo 는 앞의 0 이 없음)
+        c["seats"].append([re.sub(r"(?<=[A-Z])0+(?=\d)", "", n) for n in names])
     return c
 
 

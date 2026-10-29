@@ -37,4 +37,5 @@ for bad in (["G7"], ["G7 G8"] * 11, ["G7 가8"]):
 for bad in ({"movie": 'a"b'}, {"branch": r"a\b"}):
     try: cfg(**bad); check(f"따옴표·역슬래시 {bad} 막기", "안 막힘", "막힘")
     except SystemExit: check(f"따옴표·역슬래시 {bad} 막기", "막힘", "막힘")
-print(f"{ok}/12 통과"); sys.exit(0 if ok == 12 else 1)
+check("G07 → G7 로 맞춤", names(m.plan_seats(layout(), cfg(seats=["G07 G08"]))[0]), ["G7", "G8"])
+print(f"{ok}/13 통과"); sys.exit(0 if ok == 13 else 1)
