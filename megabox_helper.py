@@ -16,6 +16,7 @@ import asyncio
 import json
 import re
 import sys
+import urllib.request
 import winsound
 from pathlib import Path
 
@@ -290,6 +291,28 @@ def beep():
         winsound.Beep(1200, 250)
 
 
+# 휴대폰 알림: 이 PC 에 HEO Works 워커 키(..\study-helper\sync.json)가 있을 때만 보낸다. 없으면 조용히 건너뜀
+ALERT_API = "https://exam-api.dawn-sea-4052.workers.dev"
+ALERT_KEY_FILE = HERE.parent / "study-helper" / "sync.json"
+
+
+def phone_alert(text):
+    try:
+        key = json.loads(ALERT_KEY_FILE.read_text(encoding="utf-8"))["key"]
+    except Exception:
+        return
+    try:
+        for kind in ("movie", "dispatch"):        # 서버가 'movie' 종류를 아직 모르면 '디스패처' 제목으로(글이 [영화 예매] 로 시작해 구별됨)
+            body = json.dumps({"action": "pcAlert", "key": key, "kind": kind, "text": ("[영화 예매] " + text)[:300]}).encode()
+            req = urllib.request.Request(ALERT_API, data=body, headers={"User-Agent": "movie-helper", "Content-Type": "application/json"})
+            r = json.loads(urllib.request.urlopen(req, timeout=20).read())
+            if r.get("error") != "bad_kind":
+                break
+        log("휴대폰 알림: " + ("보냄" if r.get("ok") else f"실패({r.get('error')})"))
+    except Exception as e:
+        log(f"휴대폰 알림 실패({type(e).__name__})")
+
+
 async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=str(HERE / "config.json"))
@@ -338,6 +361,8 @@ async def main():
 
         if not show:
             log("조건에 맞는 회차를 못 찾았어요.")
+            if not a.dry:
+                await asyncio.to_thread(phone_alert, f"[{site.NAME}] {c['movie']} {c['date']} — 조건에 맞는 회차를 못 찾아 멈췄어요.")
             return
         log(f"고른 회차: {show['text']} (남은 좌석 {show['rest']})")
         if a.dry:
@@ -357,9 +382,11 @@ async def main():
             picked, how = [], f"좌석 화면을 자동으로 다루지 못했어요({type(e).__name__})"
         beep()
         if picked:
-            log(f"\n좌석 {', '.join(picked)} 을 골랐어요({how}).")
+            msg = f"좌석 {', '.join(picked)} 을 골랐어요({how})."
         else:
-            log(f"\n{how}. 좌석은 직접 골라 주세요.")
+            msg = f"{how}. 좌석은 직접 골라 주세요."
+        log("\n" + msg)
+        await asyncio.to_thread(phone_alert, f"[{site.NAME}] {show['text'][:60]} — {msg} 결제 직전에 멈췄어요.")
         log("창에서 좌석을 확인하고 다음 단계를 직접 눌러 결제하세요. (창을 닫으면 프로그램도 끝나요)")
         await page.wait_for_event("close", timeout=0)
 

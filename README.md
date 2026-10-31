@@ -19,6 +19,12 @@ python -m playwright install chromium
 - `--dry` : 로그인 없이 고를 회차만 보여 줌
 - `python test_seats.py` : 좌석 순위 고르기 시험
 
+### 폰에서 쓰기
+프로그램은 PC 크롬 창에서 돌아서, 폰에서는 PC 화면을 원격으로 본다.
+1. PC 에 **Chrome 원격 데스크톱**(remotedesktop.google.com/access)을 설치하고 PIN 을 정한다. 폰에도 같은 앱을 깔고 같은 구글 계정으로 로그인.
+2. 폰 앱으로 PC 에 들어가 바탕화면의 **영화 예매 도우미** 바로가기를 누른다(= `python megabox_helper.py`). PC 는 켜져 있고 절전이 꺼져 있어야 함.
+3. 좌석이 골라져 멈추면 휴대폰 알림이 온다(이 PC 에 HEO Works 워커 키 `..\study-helper\sync.json` 이 있을 때만). 원격 화면에서 확인하고 직접 결제.
+
 ### 영화관별 상태
 | | 회차 고르기 | 좌석 고르기 |
 |---|---|---|
