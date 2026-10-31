@@ -109,7 +109,7 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
 
 <header><div class="wrap">
   <h1>좌석까지 골라 두고,<br>결제는 직접.</h1>
-  <p>영화·지점·날짜·시간·좌석 1~10순위를 정해 두면, 프로그램이 메가박스·롯데시네마에서 그대로 고르고 결제 직전에 멈춥니다. 롯데시네마 좌석 고르기는 아직 시험 중이라, 안 되면 좌석만 직접 고르게 멈춰요.</p>
+  <p>영화·지점·날짜·시간·좌석 1~10순위를 정해 두면, 프로그램이 메가박스·롯데시네마·CGV에서 그대로 고르고 결제 직전에 멈춥니다. 롯데시네마·CGV 좌석 고르기는 아직 시험 중이라, 안 되면 좌석만 직접 고르게 멈춰요.</p>
   <div class="row"><a class="btn" href="#make">설정 만들기</a><a class="btn ghost" href="#run">설치·실행 방법</a></div>
 </div></header>
 
@@ -133,10 +133,10 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
       <div class="panel">
         <h3>영화와 회차</h3>
         <div class="fields">
-          <div class="full"><label for="cinema">영화관</label><select id="cinema"><option value="megabox">메가박스</option><option value="lotte">롯데시네마</option></select></div>
+          <div class="full"><label for="cinema">영화관</label><select id="cinema"><option value="megabox">메가박스</option><option value="lotte">롯데시네마</option><option value="cgv">CGV (Chrome 필요)</option></select></div>
           <div class="full"><label for="movie">영화 제목 <span class="hint">— 예매 화면 목록의 이름 일부만 적어도 돼요</span></label><input id="movie" type="text" placeholder="예: 하트 오브 비스트" maxlength="60"></div>
           <div><label for="region">지역</label><select id="region"></select></div>
-          <div><label for="branch">지점 <span class="hint">— 화면에 보이는 이름 그대로</span></label><input id="branch" type="text" placeholder="예: 코엑스, 월드타워, 광명(광명사거리)" maxlength="30"></div>
+          <div><label for="branch">지점 <span class="hint">— 화면에 보이는 이름 그대로</span></label><input id="branch" type="text" placeholder="예: 코엑스, 월드타워, 용산아이파크몰" maxlength="30"></div>
           <div><label for="date">날짜</label><input id="date" type="date"></div>
           <div><label for="format">상영 형식 <span class="hint">— 비우면 아무거나</span></label><input id="format" type="text" placeholder="예: Dolby, 4DX, 자막" maxlength="20"></div>
           <div class="full">
@@ -194,7 +194,8 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
     <li><div><h3>프로그램 받기</h3><p>압축을 풀면 <code>megabox_helper.py</code>가 든 폴더가 생겨요.</p><a class="btn ghost" href="https://github.com/trEditor88/megabox-helper/archive/refs/heads/main.zip">ZIP 받기</a></div></li>
     <li><div><h3>준비 한 번</h3><p>명령 창(PowerShell)에서 한 줄씩 실행해요.</p>
       <div class="cmd"><code>pip install playwright</code><button class="btn util cp" type="button" data-c="pip install playwright">복사</button></div>
-      <div class="cmd" style="margin-top:8px"><code>python -m playwright install chromium</code><button class="btn util cp" type="button" data-c="python -m playwright install chromium">복사</button></div></div></li>
+      <div class="cmd" style="margin-top:8px"><code>python -m playwright install chromium</code><button class="btn util cp" type="button" data-c="python -m playwright install chromium">복사</button></div>
+      <p class="hint" style="margin:8px 0 0">CGV는 PC에 설치된 Chrome 브라우저 창으로만 열려요(다른 브라우저 창은 CGV가 막아요). Chrome이 없으면 먼저 설치해 주세요.</p></div></li>
     <li><div><h3>설정 넣기</h3><p>위에서 받은 <code>config.json</code>으로 폴더 안의 같은 이름 파일을 바꿔요.</p></div></li>
     <li><div><h3>미리 보기(선택)</h3><p>로그인 없이 어떤 회차를 고를지만 확인해요. 그 폴더에서 실행하세요.</p>
       <div class="cmd"><code>python megabox_helper.py --dry</code><button class="btn util cp" type="button" data-c="python megabox_helper.py --dry">복사</button></div></div></li>
@@ -205,7 +206,7 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
 
 <section class="alt"><div class="wrap">
   <h2>쓰기 전에</h2>
-  <p class="note">메가박스·롯데시네마 이용약관은 자동 프로그램 사용을 금지해요. 내 예매에 가끔만 쓰고, 짧은 간격으로 반복 확인하지 마세요. 계정 제재 책임은 쓰는 사람에게 있어요. 로봇 확인과 결제는 프로그램이 대신하지 않아요.</p>
+  <p class="note">메가박스·롯데시네마·CGV 이용약관은 자동 프로그램 사용을 금지해요. 내 예매에 가끔만 쓰고, 짧은 간격으로 반복 확인하지 마세요. 계정 제재 책임은 쓰는 사람에게 있어요. 로봇 확인과 결제는 프로그램이 대신하지 않아요.</p>
 </div></section>
 
 <footer><div class="wrap">영화 예매 도우미 · 개인용 · 각 영화관과 관련 없는 비공식 도구 · <a href="https://github.com/trEditor88/megabox-helper">GitHub</a></div></footer>
@@ -218,6 +219,7 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
   const REGION_SETS = {
     megabox: ['서울','경기','인천','대전/충청/세종','부산/대구/경상','광주/전라','강원','제주'],
     lotte: ['서울','경기/인천','충청/대전','전라/광주','경북/대구','경남/부산/울산','강원','제주'],
+    cgv: ['서울','경기','인천','강원','대전/충청','대구','부산/울산','경상','광주/전라/제주'],
   };
   let REGIONS = REGION_SETS.megabox;
   function fillRegions(keep) {
@@ -379,7 +381,7 @@ footer{background:var(--parchment);padding:48px 0;color:var(--muted);font-size:v
     if (!cfg || typeof cfg !== 'object') throw new Error('설정 모양이 아니에요');
     const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
     $('movie').value = str(cfg.movie, 60); $('branch').value = str(cfg.branch, 30); $('format').value = str(cfg.format_keyword, 20);
-    $('cinema').value = cfg.cinema === 'lotte' ? 'lotte' : 'megabox';
+    $('cinema').value = ['lotte', 'cgv'].includes(cfg.cinema) ? cfg.cinema : 'megabox';
     fillRegions(cfg.region);
     if (/^\d{4}-\d{2}-\d{2}$/.test(cfg.date || '')) $('date').value = cfg.date;
     const p = Math.max(1, Math.min(8, parseInt(cfg.people) || 1)); $('people').value = p;

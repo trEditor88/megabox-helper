@@ -1,7 +1,8 @@
-"""영화 예매 도우미(메가박스·롯데시네마) — 영화·지점·날짜·시간·좌석까지 고르고 결제 직전에 멈춘다.
+"""영화 예매 도우미(메가박스·롯데시네마·CGV) — 영화·지점·날짜·시간·좌석까지 고르고 결제 직전에 멈춘다.
 
 - 로그인은 처음 한 번 열린 창에서 직접 한다(비밀번호를 프로그램이 다루지 않음).
-  로그인 상태는 profile\\ 폴더에 남아 다음부터는 다시 안 해도 된다.
+  로그인 상태는 profile\\ 폴더(CGV 는 profile_cgv\\)에 남아 다음부터는 다시 안 해도 된다.
+- CGV 만 설치된 Chrome 창으로 연다(Cloudflare 가 Playwright Chromium·창 없는 실행을 막음, --dry 도 창이 뜸).
 - 좌석 화면의 '다음'(로봇 확인 + 결제 창)은 프로그램이 누르지 않는다. 사람이 누른다.
 - 좌석은 seats 의 1~10순위(인원 수만큼 좌석 이름)를 차례로 보고, 다 찼으면 rows 줄에서 자동으로 고른다.
 - 예매 오픈 기다리기(wait_open)는 check_every_sec 간격(최소 30초)으로만 확인한다.
@@ -20,6 +21,7 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+import cgv
 import lotte
 
 HERE = Path(__file__).resolve().parent
@@ -33,8 +35,8 @@ def log(msg):
 def load_config(path):
     c = json.loads(Path(path).read_text(encoding="utf-8"))
     c["cinema"] = c.get("cinema", "megabox")
-    if c["cinema"] not in ("megabox", "lotte"):
-        sys.exit("cinema 는 megabox 나 lotte 만 쓸 수 있어요.")
+    if c["cinema"] not in ("megabox", "lotte", "cgv"):
+        sys.exit("cinema 는 megabox, lotte, cgv 만 쓸 수 있어요.")
     c["date_data"] = c["date"].replace("-", ".")          # 2026.10.30
     for k in ("movie", "region", "branch", "format_keyword"):
         if re.search(r'["\\]', str(c.get(k, ""))):     # 화면 선택자에 들어가는 값
@@ -265,7 +267,22 @@ class Lotte:
         return await pick_and_click(seats, c, lambda s: lotte.click_seat(page, s))
 
 
-SITES = {"megabox": Megabox, "lotte": Lotte}
+class Cgv:
+    NAME = cgv.NAME
+    URL = cgv.URL
+    LOGIN_URL = cgv.LOGIN_URL
+    CHROME = cgv.CHROME
+    is_logged_in = staticmethod(cgv.is_logged_in)
+    pick_schedule = staticmethod(cgv.pick_schedule)
+    open_show = staticmethod(cgv.open_show)
+
+    @staticmethod
+    async def choose_seats(page, c):
+        seats = await cgv.read_seats(page, c)
+        return await pick_and_click(seats, c, lambda s: cgv.click_seat(page, s))
+
+
+SITES = {"megabox": Megabox, "lotte": Lotte, "cgv": Cgv}
 
 
 def beep():
@@ -282,20 +299,28 @@ async def main():
     site = SITES[c["cinema"]]()
     log(f"[{site.NAME}] 찾는 것: {c['movie']} / {c['region']} {c['branch']} / {c['date']} / {c['people']}명")
 
+    chrome = getattr(site, "CHROME", False)        # CGV: 설치된 Chrome 으로만(Cloudflare 가 Chromium 을 막음)
     async with async_playwright() as p:
-        if a.dry:
-            browser = await p.chromium.launch()
-            page = await browser.new_page(locale="ko-KR")
-        else:
-            ctx = await p.chromium.launch_persistent_context(
-                str(HERE / "profile"), headless=False, locale="ko-KR", viewport=None,
-                args=["--start-maximized"])
-            page = ctx.pages[0] if ctx.pages else await ctx.new_page()
+        try:
+            if a.dry:
+                browser = await (p.chromium.launch(channel="chrome", headless=False) if chrome else p.chromium.launch())
+                page = await browser.new_page(locale="ko-KR")
+            else:
+                ctx = await p.chromium.launch_persistent_context(
+                    str(HERE / ("profile_cgv" if chrome else "profile")), channel="chrome" if chrome else None,
+                    headless=False, locale="ko-KR", viewport=None, args=["--start-maximized"])
+                page = ctx.pages[0] if ctx.pages else await ctx.new_page()
+        except Exception as e:
+            if chrome:
+                sys.exit(f"{site.NAME}는 Chrome 브라우저로만 열려요. Chrome 이 설치돼 있는지, 이 프로그램 창이 이미 켜져 있지 않은지 확인해 주세요.\n({str(e).splitlines()[0]})")
+            raise
 
         await page.goto(site.URL, wait_until="domcontentloaded", timeout=60000)
-        await asyncio.sleep(2)
+        await asyncio.sleep(6 if chrome else 2)
         if not a.dry and not await site.is_logged_in(page):
             log(f"\n열린 창에서 {site.NAME}에 로그인해 주세요. 로그인이 끝나면 자동으로 계속해요.")
+            if getattr(site, "LOGIN_URL", None):
+                await page.goto(site.LOGIN_URL, wait_until="domcontentloaded", timeout=60000)
             while not await site.is_logged_in(page):
                 await asyncio.sleep(2)
             log("로그인 확인!")
