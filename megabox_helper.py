@@ -16,6 +16,7 @@ import asyncio
 import json
 import re
 import sys
+import time
 import urllib.request
 import winsound
 from pathlib import Path
@@ -338,17 +339,48 @@ async def main():
                 sys.exit(f"{site.NAME}는 Chrome 브라우저로만 열려요. Chrome 이 설치돼 있는지, 이 프로그램 창이 이미 켜져 있지 않은지 확인해 주세요.\n({str(e).splitlines()[0]})")
             raise
 
-        await page.goto(site.URL, wait_until="domcontentloaded", timeout=60000)
-        await asyncio.sleep(6 if chrome else 2)
-        if not a.dry and not await site.is_logged_in(page):
-            log(f"\n열린 창에서 {site.NAME}에 로그인해 주세요. 로그인이 끝나면 자동으로 계속해요.")
+        async def check_login():
+            try:
+                return await site.is_logged_in(page)
+            except Exception:              # 로그인 버튼을 눌러 화면이 바뀌는 중 등
+                return False
+
+        async def logged_in():
+            # 화면이 덜 그려져 '로그아웃'으로 잘못 보는 일이 없게 두 번 확인
+            if await check_login():
+                return True
+            await asyncio.sleep(4)
+            return await check_login()
+
+        alerts = []                        # 로그인 풀림 알림 보낸 시각(서버 하루 10건을 좌석 알림 몫으로 남김)
+
+        async def relogin_alert():
+            now = time.monotonic()
+            if len(alerts) >= 3 or (alerts and now - alerts[-1] < 30 * 60):
+                return
+            alerts.append(now)
+            await asyncio.to_thread(phone_alert, f"[{site.NAME}] 로그인이 풀렸어요. 원격으로 PC 창에서 다시 로그인하면 이어서 기다려요(그동안 예매 오픈 확인은 멈춤).")
+
+        async def login(again=False):
+            if again:      # 예매 오픈을 기다리는 사이 사이트 로그인이 풀림 → 폰으로 알리고 다시 로그인할 때까지 기다림
+                log(f"\n{site.NAME} 로그인이 풀렸어요. 열린 창에서 다시 로그인하면 이어서 기다려요.")
+                await relogin_alert()
+            else:
+                log(f"\n열린 창에서 {site.NAME}에 로그인해 주세요. 로그인이 끝나면 자동으로 계속해요.")
             if getattr(site, "LOGIN_URL", None):
                 await page.goto(site.LOGIN_URL, wait_until="domcontentloaded", timeout=60000)
-            while not await site.is_logged_in(page):
+            while not await check_login():
                 await asyncio.sleep(2)
+                if again:
+                    await relogin_alert()  # 오래 안 하면 30분마다 다시(최대 3번)
             log("로그인 확인!")
             await page.goto(site.URL, wait_until="domcontentloaded", timeout=60000)
-            await asyncio.sleep(2)
+            await asyncio.sleep(6 if chrome else 2)
+
+        await page.goto(site.URL, wait_until="domcontentloaded", timeout=60000)
+        await asyncio.sleep(6 if chrome else 2)
+        if not a.dry and not await logged_in():
+            await login()
 
         while True:
             show = best_show(await site.pick_schedule(page, c), c)
@@ -357,7 +389,9 @@ async def main():
             log(f"  {c['check_every_sec']}초 뒤 다시 확인해요. (끄려면 Ctrl+C)")
             await asyncio.sleep(c["check_every_sec"])
             await page.reload(wait_until="domcontentloaded")
-            await asyncio.sleep(2)
+            await asyncio.sleep(6 if chrome else 2)
+            if not await logged_in():
+                await login(again=True)
 
         if not show:
             log("조건에 맞는 회차를 못 찾았어요.")
